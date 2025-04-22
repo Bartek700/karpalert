@@ -1,8 +1,8 @@
 // app.js
 
 const API_KEY = '077c677ebd03a9c6d18395a9711619e2'; const CITY = 'Gorzów Wielkopolski'; const API_URL = https://api.openweathermap.org/data/2.5/forecast?q=${CITY}&appid=${API_KEY}&units=metric;
-
-function fetchForecast() { fetch(API_URL) .then(response => response.json()) .then(data => { const dailyForecasts = groupForecastsByDay(data.list); displayForecasts(dailyForecasts); }) .catch(error => { console.error('Błąd podczas pobierania danych pogodowych:', error); }); }
+console.log("Ładuję dane pogodowe...");
+function fetchForecast() { fetch(API_URL) console.log("Odpowiedź z API:", response); .then(response => response.json()) .then(data => { const dailyForecasts = groupForecastsByDay(data.list); displayForecasts(dailyForecasts); }) .catch(error => { console.error('Błąd podczas pobierania danych pogodowych:', error); }); }
 
 function groupForecastsByDay(forecasts) { const grouped = {};
 
