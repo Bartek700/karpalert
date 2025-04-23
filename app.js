@@ -8,17 +8,20 @@ function fetchForecast() {
   fetch(API_URL)
     .then(response => {
       if (!response.ok) {
-        throw new Error('Błąd sieci');
+        throw new Error('Błąd sieci: Nie udało się pobrać danych');
       }
       return response.json();
     })
     .then(data => {
+      console.log("Dane z API:", data);  // Logujemy dane, by sprawdzić, co dokładnie otrzymujemy
       const dailyForecasts = groupForecastsByDay(data.list);
       displayForecasts(dailyForecasts);
       drawHourlyPressureChart(data.list);
     })
     .catch(error => {
       console.error('Błąd podczas pobierania danych pogodowych:', error);
+      // Dodajemy dodatkową informację w przypadku błędu
+      document.getElementById('forecast').innerHTML = 'Nie udało się załadować prognozy pogody.';
     });
 }
 
@@ -124,4 +127,15 @@ function drawHourlyPressureChart(data) {
       }]
     },
     options: {
-     15
+      responsive: true,
+      scales: {
+        x: {
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45
+          }
+        }
+      }
+    }
+  });
+}
