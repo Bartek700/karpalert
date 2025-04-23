@@ -124,6 +124,4 @@ function drawHourlyPressureChart(data) {
       }]
     },
     options: {
-      scales: {
-        x: {
-          title15
+     15
