@@ -1,60 +1,77 @@
+const API_KEY = '077c677ebd03a9c6d18395a9711619e2';
+const CITY = 'Gorzów Wielkopolski';
+const API_URL = `https://api.openweathermap.org/data/2.5/forecast?q=${CITY}&appid=${API_KEY}&units=metric&lang=pl`;
+
 document.addEventListener('DOMContentLoaded', fetchForecast);
 
-async function fetchForecast() {
-  const res = await fetch('https://api.openweathermap.org/data/2.5/forecast?lat=52.73&lon=15.24&appid=TWÓJ_KLUCZ_API&units=metric&lang=pl');
-  const data = await res.json();
-  const entries = data.list;
+function fetchForecast() {
+  fetch(API_URL)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Błąd sieci');
+      }
+      return response.json();
+    })
+    .then(data => {
+      const dailyForecasts = groupForecastsByDay(data.list);
+      displayForecasts(dailyForecasts);
+      drawHourlyPressureChart(data.list);
+    })
+    .catch(error => {
+      console.error('Błąd podczas pobierania danych pogodowych:', error);
+    });
+}
 
-  drawHourlyPressureChart(entries); // Wykres 3-dniowy
+function groupForecastsByDay(forecasts) {
+  const grouped = {};
 
-  const groupedByDay = {};
-
-  entries.forEach(entry => {
-    const date = new Date(entry.dt * 1000).toLocaleDateString('pl-PL');
-    if (!groupedByDay[date]) {
-      groupedByDay[date] = [];
-    }
-    groupedByDay[date].push(entry);
+  forecasts.forEach(forecast => {
+    const date = forecast.dt_txt.split(' ')[0];
+    if (!grouped[date]) grouped[date] = [];
+    grouped[date].push(forecast);
   });
 
-  const result = Object.entries(groupedByDay).map(([date, entries]) => {
-    const pressures = entries.map(e => e.main.pressure);
-    const avg = pressures.reduce((a, b) => a + b, 0) / pressures.length;
-    const min = Math.min(...pressures);
-    const max = Math.max(...pressures);
-    const stable = max - min <= 3;
+  const result = Object.entries(grouped)
+    .slice(0, 3)
+    .map(([date, entries]) => {
+      const pressures = entries.map(e => e.main.pressure);
+      const min = Math.min(...pressures);
+      const max = Math.max(...pressures);
+      const avg = pressures.reduce((a, b) => a + b, 0) / pressures.length;
 
-    let rating = 'Brak danych';
-    let color = 'red';
+      const stable = max - min <= 6;
 
-    if (avg >= 990 && avg <= 1005 && stable) {
-      rating = 'Wspaniale';
-      color = 'lightgreen';
-    } else if (avg >= 990 && avg <= 1005) {
-      rating = 'Dobrze';
-      color = 'green';
-    } else if (avg > 1005 && avg <= 1020 && stable) {
-      rating = 'Średnio';
-      color = 'yellow';
-    } else if (avg > 1020 && avg <= 1030 && stable) {
-      rating = 'Słabo';
-      color = 'orange';
-    }
+      let rating = 'Bardzo źle';
+      let color = 'red';
 
-    return {
-      date,
-      pressure: Math.round(avg),
-      min,
-      max,
-      stable,
-      rating,
-      color,
-      icon: entries[0].weather[0].icon,
-      description: entries[0].weather[0].description
-    };
-  });
+      if (avg >= 990 && avg <= 1005 && stable) {
+        rating = 'Wspaniale';
+        color = 'lightgreen';
+      } else if (avg >= 990 && avg <= 1005) {
+        rating = 'Dobrze';
+        color = 'green';
+      } else if (avg > 1005 && avg <= 1020 && stable) {
+        rating = 'Średnio';
+        color = 'yellow';
+      } else if (avg > 1020 && avg <= 1030 && stable) {
+        rating = 'Słabo';
+        color = 'orange';
+      }
 
-  displayForecasts(result);
+      return {
+        date,
+        pressure: Math.round(avg),
+        min,
+        max,
+        stable,
+        rating,
+        color,
+        icon: entries[0].weather[0].icon,
+        description: entries[0].weather[0].description
+      };
+    });
+
+  return result;
 }
 
 function displayForecasts(forecasts) {
@@ -63,12 +80,8 @@ function displayForecasts(forecasts) {
 
   forecasts.forEach(day => {
     const card = document.createElement('div');
+    card.className = 'card';
     card.style.backgroundColor = day.color;
-    card.style.padding = '10px';
-    card.style.margin = '10px';
-    card.style.borderRadius = '10px';
-    card.style.color = '#000';
-    card.style.width = '220px';
 
     card.innerHTML = `
       <h3>${day.date}</h3>
@@ -113,31 +126,4 @@ function drawHourlyPressureChart(data) {
     options: {
       scales: {
         x: {
-          title: {
-            display: true,
-            text: 'Data i godzina'
-          },
-          ticks: {
-            maxRotation: 90,
-            minRotation: 45
-          }
-        },
-        y: {
-          title: {
-            display: true,
-            text: 'Ciśnienie (hPa)'
-          }
-        }
-      },
-      plugins: {
-        title: {
-          display: true,
-          text: 'Wykres ciśnienia – 3 dni do przodu'
-        },
-        legend: {
-          display: false
-        }
-      }
-    }
-  });
-}
+          title15
