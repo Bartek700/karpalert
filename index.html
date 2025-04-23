@@ -1,29 +1,32 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>KarpAlert</title>
+  <meta charset="UTF-8">
+  <title>Prognoza pogody i ciśnienia</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #f0f0f0;
       padding: 20px;
-      background-color: #eef6f9;
-    }
-    h1 {
-      text-align: center;
-      color: #006d5b;
     }
     #forecast {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
     }
+    canvas {
+      max-width: 100%;
+      margin: 20px auto;
+      display: block;
+    }
   </style>
 </head>
 <body>
-  <h1>KarpAlert – Pogoda na karpie</h1>
-  <div id="forecast">Ładowanie danych...</div>
+
+  <h1>Prognoza pogody dla karpiarzy</h1>
+  <canvas id="hourlyPressureChart" width="800" height="400"></canvas>
+  <div id="forecast"></div>
 
   <script src="app.js"></script>
 </body>
