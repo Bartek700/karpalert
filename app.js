@@ -8,20 +8,17 @@ function fetchForecast() {
   fetch(API_URL)
     .then(response => {
       if (!response.ok) {
-        throw new Error('Błąd sieci: Nie udało się pobrać danych');
+        throw new Error('Błąd sieci');
       }
       return response.json();
     })
     .then(data => {
-      console.log("Dane z API:", data);  // Logujemy dane, by sprawdzić, co dokładnie otrzymujemy
       const dailyForecasts = groupForecastsByDay(data.list);
       displayForecasts(dailyForecasts);
       drawHourlyPressureChart(data.list);
     })
     .catch(error => {
       console.error('Błąd podczas pobierania danych pogodowych:', error);
-      // Dodajemy dodatkową informację w przypadku błędu
-      document.getElementById('forecast').innerHTML = 'Nie udało się załadować prognozy pogody.';
     });
 }
 
@@ -35,30 +32,45 @@ function groupForecastsByDay(forecasts) {
   });
 
   const result = Object.entries(grouped)
-    .slice(0, 3)
+    .slice(0, 3) // Analizujemy dane tylko dla 3 dni
     .map(([date, entries]) => {
       const pressures = entries.map(e => e.main.pressure);
       const min = Math.min(...pressures);
       const max = Math.max(...pressures);
       const avg = pressures.reduce((a, b) => a + b, 0) / pressures.length;
 
-      const stable = max - min <= 6;
+      // Sprawdzanie stabilności ciśnienia przez 48 godzin
+      const isStable = Math.abs(max - min) <= 6;
 
       let rating = 'Bardzo źle';
       let color = 'red';
 
-      if (avg >= 990 && avg <= 1005 && stable) {
-        rating = 'Wspaniale';
-        color = 'lightgreen';
-      } else if (avg >= 990 && avg <= 1005) {
-        rating = 'Dobrze';
-        color = 'green';
-      } else if (avg > 1005 && avg <= 1020 && stable) {
-        rating = 'Średnio';
-        color = 'yellow';
-      } else if (avg > 1020 && avg <= 1030 && stable) {
-        rating = 'Słabo';
-        color = 'orange';
+      // Nowe zasady oceny pogody
+      if (isStable) {
+        if (avg >= 990 && avg <= 1005) {
+          rating = 'Wspaniałe';  // Stabilne, niskie ciśnienie
+          color = 'lightgreen';
+        } else if (avg >= 1006 && avg <= 1025) {
+          rating = 'Dobre'; // Stabilne, średnie ciśnienie
+          color = 'green';
+        } else if (avg >= 1026 && avg <= 1040) {
+          rating = 'Średnie'; // Stabilne, wysokie ciśnienie
+          color = 'yellow';
+        }
+      } else {
+        if (avg >= 990 && avg <= 1005) {
+          rating = 'Źle'; // Niestabilne, niskie ciśnienie
+          color = 'orange';
+        } else if (avg >= 1006 && avg <= 1025) {
+          rating = 'Średnie'; // Niestabilne, średnie ciśnienie
+          color = 'yellow';
+        } else if (avg >= 1026 && avg <= 1040) {
+          rating = 'Źle'; // Niestabilne, wysokie ciśnienie
+          color = 'orange';
+        } else {
+          rating = 'Bardzo źle'; // Bardzo wysokie ciśnienie
+          color = 'red';
+        }
       }
 
       return {
@@ -66,7 +78,7 @@ function groupForecastsByDay(forecasts) {
         pressure: Math.round(avg),
         min,
         max,
-        stable,
+        stable: isStable,
         rating,
         color,
         icon: entries[0].weather[0].icon,
@@ -128,11 +140,15 @@ function drawHourlyPressureChart(data) {
     },
     options: {
       responsive: true,
-      scales: {
-        x: {
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(tooltipItem) {
+              return tooltipItem.raw + ' hPa';
+            }
           }
         }
       }
