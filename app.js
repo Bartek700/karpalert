@@ -15,7 +15,7 @@ function fetchForecast() {
     .then(data => {
       const dailyForecasts = groupForecastsByDay(data.list);
       displayForecasts(dailyForecasts);
-      drawHourlyPressureChart(data.list);
+      drawPressureChart(data.list);
     })
     .catch(error => {
       console.error('Błąd podczas pobierania danych pogodowych:', error);
@@ -32,46 +32,54 @@ function groupForecastsByDay(forecasts) {
   });
 
   const result = Object.entries(grouped)
-    .slice(0, 3)
+    .slice(0, 5) // Zmieniono na 5 dni
     .map(([date, entries]) => {
+      const temperatures = entries.map(e => e.main.temp);
+      const winds = entries.map(e => e.wind.speed);
       const pressures = entries.map(e => e.main.pressure);
-      const min = Math.min(...pressures);
-      const max = Math.max(...pressures);
+
+      const minTemp = Math.min(...temperatures);
+      const maxTemp = Math.max(...temperatures);
+      const avgTemp = temperatures.reduce((a, b) => a + b, 0) / temperatures.length;
+
+      const avgWind = winds.reduce((a, b) => a + b, 0) / winds.length;
+
+      const minPressure = Math.min(...pressures);
+      const maxPressure = Math.max(...pressures);
       const avgPressure = pressures.reduce((a, b) => a + b, 0) / pressures.length;
 
-      const isStable = max - min <= 6;
+      const stable = maxPressure - minPressure <= 6;
 
-      // Ocena pogody według nowych zasad
-      let rating = 'Bardzo zła';
+      let rating = 'Bardzo źle';
       let color = 'red';
 
-      if (isStable) {
+      // Nowe zasady oceny pogody
+      if (stable) {
         if (avgPressure >= 990 && avgPressure <= 1005) {
-          rating = 'Wspaniała';
+          rating = 'Wspaniale';
           color = 'lightgreen';
-        } else if (avgPressure >= 1006 && avgPressure <= 1025) {
-          rating = 'Dobra';
+        } else if (avgPressure > 1005 && avgPressure <= 1025) {
+          rating = 'Dobre';
           color = 'green';
-        } else if (avgPressure >= 1026 && avgPressure <= 1040) {
-          rating = 'Średnia';
+        } else if (avgPressure > 1025 && avgPressure <= 1040) {
+          rating = 'Średnie';
           color = 'yellow';
         }
       } else {
-        if (avgPressure >= 990 && avgPressure <= 1025) {
-          rating = 'Zła';
-          color = 'orange';
-        } else {
-          rating = 'Bardzo zła';
-          color = 'red';
-        }
+        rating = 'Złe';
+        color = 'orange';
       }
 
       return {
         date,
-        pressure: Math.round(avgPressure),
-        min,
-        max,
-        stable: isStable,
+        minTemp,
+        maxTemp,
+        avgTemp,
+        avgWind,
+        minPressure,
+        maxPressure,
+        avgPressure,
+        stable,
         rating,
         color,
         icon: entries[0].weather[0].icon,
@@ -95,8 +103,11 @@ function displayForecasts(forecasts) {
       <h3>${day.date}</h3>
       <img src="https://openweathermap.org/img/wn/${day.icon}@2x.png" alt="pogoda">
       <p><strong>Opis:</strong> ${day.description}</p>
-      <p><strong>Średnie ciśnienie:</strong> ${day.pressure} hPa</p>
-      <p><strong>Zakres:</strong> ${day.min} - ${day.max} hPa</p>
+      <p><strong>Średnia temperatura:</strong> ${day.avgTemp.toFixed(1)} °C</p>
+      <p><strong>Średnia prędkość wiatru:</strong> ${day.avgWind.toFixed(1)} m/s</p>
+      <p><strong>Średnie ciśnienie:</strong> ${Math.round(day.avgPressure)} hPa</p>
+      <p><strong>Zakres temperatury:</strong> ${day.minTemp} - ${day.maxTemp} °C</p>
+      <p><strong>Zakres ciśnienia:</strong> ${day.minPressure} - ${day.maxPressure} hPa</p>
       <p><strong>Stabilność:</strong> ${day.stable ? 'Tak' : 'Nie'}</p>
       <p><strong>Ocena:</strong> ${day.rating}</p>
     `;
@@ -105,7 +116,7 @@ function displayForecasts(forecasts) {
   });
 }
 
-function drawHourlyPressureChart(data) {
+function drawPressureChart(data) {
   const ctx = document.getElementById('hourlyPressureChart').getContext('2d');
 
   const labels = data.map(point =>
@@ -133,31 +144,10 @@ function drawHourlyPressureChart(data) {
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: {
-          display: true
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false
-        }
-      },
       scales: {
-        x: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Data i godzina'
-          }
-        },
-        y: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Ciśnienie (hPa)'
-          }
-        }
+        x: { title: { display: true, text: 'Data i godzina' } },
+        y: { title: { display: true, text: 'Ciśnienie (hPa)' } }
       }
     }
   });
-    }
+                                       }
