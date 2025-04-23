@@ -32,50 +32,43 @@ function groupForecastsByDay(forecasts) {
   });
 
   const result = Object.entries(grouped)
-    .slice(0, 3) // Analizujemy dane tylko dla 3 dni
+    .slice(0, 3)
     .map(([date, entries]) => {
       const pressures = entries.map(e => e.main.pressure);
       const min = Math.min(...pressures);
       const max = Math.max(...pressures);
-      const avg = pressures.reduce((a, b) => a + b, 0) / pressures.length;
+      const avgPressure = pressures.reduce((a, b) => a + b, 0) / pressures.length;
 
-      // Sprawdzanie stabilności ciśnienia przez 48 godzin
-      const isStable = Math.abs(max - min) <= 6;
+      const isStable = max - min <= 6;
 
-      let rating = 'Bardzo źle';
+      // Ocena pogody według nowych zasad
+      let rating = 'Bardzo zła';
       let color = 'red';
 
-      // Nowe zasady oceny pogody
       if (isStable) {
-        if (avg >= 990 && avg <= 1005) {
-          rating = 'Wspaniałe';  // Stabilne, niskie ciśnienie
+        if (avgPressure >= 990 && avgPressure <= 1005) {
+          rating = 'Wspaniała';
           color = 'lightgreen';
-        } else if (avg >= 1006 && avg <= 1025) {
-          rating = 'Dobre'; // Stabilne, średnie ciśnienie
+        } else if (avgPressure >= 1006 && avgPressure <= 1025) {
+          rating = 'Dobra';
           color = 'green';
-        } else if (avg >= 1026 && avg <= 1040) {
-          rating = 'Średnie'; // Stabilne, wysokie ciśnienie
+        } else if (avgPressure >= 1026 && avgPressure <= 1040) {
+          rating = 'Średnia';
           color = 'yellow';
         }
       } else {
-        if (avg >= 990 && avg <= 1005) {
-          rating = 'Źle'; // Niestabilne, niskie ciśnienie
-          color = 'orange';
-        } else if (avg >= 1006 && avg <= 1025) {
-          rating = 'Średnie'; // Niestabilne, średnie ciśnienie
-          color = 'yellow';
-        } else if (avg >= 1026 && avg <= 1040) {
-          rating = 'Źle'; // Niestabilne, wysokie ciśnienie
+        if (avgPressure >= 990 && avgPressure <= 1025) {
+          rating = 'Zła';
           color = 'orange';
         } else {
-          rating = 'Bardzo źle'; // Bardzo wysokie ciśnienie
+          rating = 'Bardzo zła';
           color = 'red';
         }
       }
 
       return {
         date,
-        pressure: Math.round(avg),
+        pressure: Math.round(avgPressure),
         min,
         max,
         stable: isStable,
@@ -142,16 +135,29 @@ function drawHourlyPressureChart(data) {
       responsive: true,
       plugins: {
         legend: {
-          position: 'top',
+          display: true
         },
         tooltip: {
-          callbacks: {
-            label: function(tooltipItem) {
-              return tooltipItem.raw + ' hPa';
-            }
+          mode: 'index',
+          intersect: false
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Data i godzina'
+          }
+        },
+        y: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Ciśnienie (hPa)'
           }
         }
       }
     }
   });
-}
+    }
