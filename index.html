@@ -3,28 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Prognoza Pogody dla Karpia i Amura</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Pogoda na Karpiowe Łowisko</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1em 0;
+        }
+
+        .score {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .forecast-details {
+            background-color: #fff;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .forecast-details p {
+            margin: 5px 0;
+        }
+    </style>
 </head>
 <body>
-
     <header>
-        <h1>Prognoza Pogody dla Karpia i Amura</h1>
-        <p>Sprawdź, czy pogoda sprzyja łowieniu karpi i amurów!</p>
+        <h1>Prognoza pogody na łowisko</h1>
+        <p>Ocena warunków dla karpi i amurów</p>
     </header>
-
-    <main>
-        <div id="forecast"></div>
-
-        <canvas id="hourlyPressureChart"></canvas>
-    </main>
-
-    <footer>
-        <p>Powered by OpenWeatherMap API</p>
-    </footer>
-
+    <div id="forecast" class="forecast-container">
+        <!-- Prognoza i ocena będą wyświetlane tutaj -->
+    </div>
     <script src="app.js"></script>
 </body>
 </html>
