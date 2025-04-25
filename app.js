@@ -1,147 +1,78 @@
-const API_KEY = '077c677ebd03a9c6d18395a9711619e2';
-const CITY = 'Gorzów Wielkopolski';
-const API_URL = `https://api.openweathermap.org/data/2.5/forecast?q=${CITY}&appid=${API_KEY}&units=metric&lang=pl`;
+// Funkcja do obliczania oceny pogody
+function calculateScore(weatherData) {
+    let score = 0;
 
-document.addEventListener('DOMContentLoaded', fetchForecast);
+    // Ciśnienie atmosferyczne (1015 - 1025 hPa)
+    if (weatherData.pressure >= 1015 && weatherData.pressure <= 1025) {
+        score += 25; // Idealne ciśnienie
+    } else if (weatherData.pressure > 1025) {
+        score += 15; // Wysokie ciśnienie, może być trudniej
+    } else {
+        score += 10; // Niskie ciśnienie, ryby mogą być mniej aktywne
+    }
 
-function fetchForecast() {
-  fetch(API_URL)
-    .then(response => {
-      if (!response.ok) throw new Error('Błąd sieci');
-      return response.json();
-    })
-    .then(data => {
-      const dailyForecasts = groupForecastsByDay(data.list);
-      displayForecasts(dailyForecasts);
-      drawPressureChart(data.list);
-    })
-    .catch(error => {
-      console.error('Błąd podczas pobierania danych pogodowych:', error);
-    });
+    // Wiatr (do 15 km/h - optymalnie)
+    if (weatherData.wind_speed <= 15) {
+        score += 25; // Optymalny wiatr
+    } else if (weatherData.wind_speed <= 25) {
+        score += 15; // Umiarkowany wiatr
+    } else {
+        score += 10; // Silny wiatr, mniej sprzyjający
+    }
+
+    // Temperatura wody (18-22°C - optymalnie)
+    if (weatherData.water_temperature >= 18 && weatherData.water_temperature <= 22) {
+        score += 30; // Idealna temperatura
+    } else if (weatherData.water_temperature > 22) {
+        score += 20; // Wyższa temperatura, może być ok, ale ryby mniej aktywne
+    } else {
+        score += 15; // Niższa temperatura, ryby mogą być mniej aktywne
+    }
+
+    // Opady (brak opadów - optymalnie)
+    if (weatherData.rain <= 1) {
+        score += 20; // Brak opadów, idealne warunki
+    } else if (weatherData.rain <= 5) {
+        score += 10; // Umiarkowane opady, mogą nieco przeszkadzać
+    } else {
+        score += 5; // Silne opady, trudniejsze warunki
+    }
+
+    return Math.min(score, 100); // Maksymalna ocena to 100
 }
 
-function groupForecastsByDay(forecasts) {
-  const grouped = {};
+// Funkcja wyświetlająca prognozę oraz ocenę
+function displayForecast(data) {
+    const forecastDiv = document.getElementById("forecast");
+    const score = calculateScore(data);
 
-  forecasts.forEach(forecast => {
-    const date = forecast.dt_txt.split(' ')[0];
-    if (!grouped[date]) grouped[date] = [];
-    grouped[date].push(forecast);
-  });
+    // Tworzymy element z oceną
+    const scoreElement = document.createElement("div");
+    scoreElement.classList.add("score");
+    scoreElement.innerHTML = `<h2>Ocena: ${score}/100</h2>`;
 
-  const result = Object.entries(grouped)
-    .slice(0, 5)
-    .map(([date, entries]) => {
-      const temperatures = entries.map(e => e.main.temp);
-      const winds = entries.map(e => e.wind.speed);
-      const pressures = entries.map(e => e.main.pressure);
-
-      const minTemp = Math.min(...temperatures);
-      const maxTemp = Math.max(...temperatures);
-      const avgTemp = temperatures.reduce((a, b) => a + b, 0) / temperatures.length;
-      const avgWind = winds.reduce((a, b) => a + b, 0) / winds.length;
-      const minPressure = Math.min(...pressures);
-      const maxPressure = Math.max(...pressures);
-      const avgPressure = pressures.reduce((a, b) => a + b, 0) / pressures.length;
-      const stable = maxPressure - minPressure <= 6;
-
-      const icon = entries[0].weather[0].icon;
-      const description = entries[0].weather[0].description;
-
-      // Nowe, bardziej precyzyjne zasady dla karpia i amura
-      let rating = 'Bardzo źle';
-      let color = 'red';
-
-      if (stable && avgPressure >= 1005 && avgPressure <= 1020 && avgTemp >= 12 && avgTemp <= 22 && avgWind <= 3.5) {
-        rating = 'Wspaniale';
-        color = 'lightgreen';
-      } else if (stable && avgPressure >= 1000 && avgPressure <= 1025 && avgTemp >= 10 && avgTemp <= 25 && avgWind <= 4.5) {
-        rating = 'Dobre';
-        color = 'green';
-      } else if (avgPressure >= 990 && avgPressure <= 1030 && avgTemp >= 8 && avgTemp <= 28 && avgWind <= 6) {
-        rating = 'Średnie';
-        color = 'yellow';
-      } else if (!stable || avgWind > 7 || avgTemp < 6 || avgTemp > 30) {
-        rating = 'Złe';
-        color = 'orange';
-      }
-
-      return {
-        date,
-        minTemp,
-        maxTemp,
-        avgTemp,
-        avgWind,
-        minPressure,
-        maxPressure,
-        avgPressure,
-        stable,
-        rating,
-        color,
-        icon,
-        description
-      };
-    });
-
-  return result;
-}
-
-function displayForecasts(forecasts) {
-  const container = document.getElementById('forecast');
-  container.innerHTML = '';
-
-  forecasts.forEach(day => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.style.backgroundColor = day.color;
-
-    card.innerHTML = `
-      <h3>${day.date}</h3>
-      <img src="https://openweathermap.org/img/wn/${day.icon}@2x.png" alt="pogoda">
-      <p><strong>Opis:</strong> ${day.description}</p>
-      <p><strong>Średnia temperatura:</strong> ${day.avgTemp.toFixed(1)} °C</p>
-      <p><strong>Średnia prędkość wiatru:</strong> ${day.avgWind.toFixed(1)} m/s</p>
-      <p><strong>Średnie ciśnienie:</strong> ${Math.round(day.avgPressure)} hPa</p>
-      <p><strong>Zakres temperatury:</strong> ${day.minTemp} - ${day.maxTemp} °C</p>
-      <p><strong>Zakres ciśnienia:</strong> ${day.minPressure} - ${day.maxPressure} hPa</p>
-      <p><strong>Stabilność:</strong> ${day.stable ? 'Tak' : 'Nie'}</p>
-      <p><strong>Ocena:</strong> ${day.rating}</p>
+    // Tworzymy element z prognozą
+    const forecastDetails = document.createElement("div");
+    forecastDetails.classList.add("forecast-details");
+    forecastDetails.innerHTML = `
+        <p><strong>Ciśnienie:</strong> ${data.pressure} hPa</p>
+        <p><strong>Wiatr:</strong> ${data.wind_speed} km/h</p>
+        <p><strong>Temperatura wody:</strong> ${data.water_temperature}°C</p>
+        <p><strong>Opady:</strong> ${data.rain} mm</p>
     `;
 
-    container.appendChild(card);
-  });
+    // Dodajemy prognozę i ocenę do strony
+    forecastDiv.appendChild(forecastDetails);
+    forecastDiv.appendChild(scoreElement);
 }
 
-function drawPressureChart(data) {
-  const ctx = document.getElementById('hourlyPressureChart').getContext('2d');
-  const labels = data.map(point =>
-    new Date(point.dt * 1000).toLocaleString('pl-PL', {
-      hour: '2-digit',
-      day: '2-digit',
-      month: '2-digit'
-    })
-  );
-  const pressures = data.map(point => point.main.pressure);
+// Przykładowe dane wejściowe
+const weatherData = {
+    pressure: 1018, // Ciśnienie w hPa
+    wind_speed: 10, // Prędkość wiatru w km/h
+    water_temperature: 20, // Temperatura wody w °C
+    rain: 0 // Opady w mm
+};
 
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Ciśnienie (hPa)',
-        data: pressures,
-        borderColor: 'blue',
-        backgroundColor: 'rgba(0, 0, 255, 0.1)',
-        pointRadius: 2,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: { title: { display: true, text: 'Data i godzina' } },
-        y: { title: { display: true, text: 'Ciśnienie (hPa)' } }
-      }
-    }
-  });
-}
+// Wyświetlenie prognozy z oceną
+displayForecast(weatherData);
