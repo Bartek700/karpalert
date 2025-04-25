@@ -7,9 +7,7 @@ document.addEventListener('DOMContentLoaded', fetchForecast);
 function fetchForecast() {
   fetch(API_URL)
     .then(response => {
-      if (!response.ok) {
-        throw new Error('Błąd sieci');
-      }
+      if (!response.ok) throw new Error('Błąd sieci');
       return response.json();
     })
     .then(data => {
@@ -24,20 +22,9 @@ function fetchForecast() {
 
 function groupForecastsByDay(forecasts) {
   const grouped = {};
-  const now = new Date();
 
   forecasts.forEach(forecast => {
-    const forecastDate = new Date(forecast.dt_txt);
     const date = forecast.dt_txt.split(' ')[0];
-
-    // Jeżeli prognoza jest z dnia dzisiejszego i późniejsza niż bieżąca godzina, pomijamy ją
-    if (
-      forecastDate.toDateString() === now.toDateString() &&
-      forecastDate.getHours() > 12
-    ) {
-      return;
-    }
-
     if (!grouped[date]) grouped[date] = [];
     grouped[date].push(forecast);
   });
@@ -52,30 +39,29 @@ function groupForecastsByDay(forecasts) {
       const minTemp = Math.min(...temperatures);
       const maxTemp = Math.max(...temperatures);
       const avgTemp = temperatures.reduce((a, b) => a + b, 0) / temperatures.length;
-
       const avgWind = winds.reduce((a, b) => a + b, 0) / winds.length;
-
       const minPressure = Math.min(...pressures);
       const maxPressure = Math.max(...pressures);
       const avgPressure = pressures.reduce((a, b) => a + b, 0) / pressures.length;
-
       const stable = maxPressure - minPressure <= 6;
 
+      const icon = entries[0].weather[0].icon;
+      const description = entries[0].weather[0].description;
+
+      // Nowe, bardziej precyzyjne zasady dla karpia i amura
       let rating = 'Bardzo źle';
       let color = 'red';
 
-      if (stable) {
-        if (avgPressure >= 990 && avgPressure <= 1005) {
-          rating = 'Wspaniale';
-          color = 'lightgreen';
-        } else if (avgPressure > 1005 && avgPressure <= 1025) {
-          rating = 'Dobre';
-          color = 'green';
-        } else if (avgPressure > 1025 && avgPressure <= 1040) {
-          rating = 'Średnie';
-          color = 'yellow';
-        }
-      } else {
+      if (stable && avgPressure >= 1005 && avgPressure <= 1020 && avgTemp >= 12 && avgTemp <= 22 && avgWind <= 3.5) {
+        rating = 'Wspaniale';
+        color = 'lightgreen';
+      } else if (stable && avgPressure >= 1000 && avgPressure <= 1025 && avgTemp >= 10 && avgTemp <= 25 && avgWind <= 4.5) {
+        rating = 'Dobre';
+        color = 'green';
+      } else if (avgPressure >= 990 && avgPressure <= 1030 && avgTemp >= 8 && avgTemp <= 28 && avgWind <= 6) {
+        rating = 'Średnie';
+        color = 'yellow';
+      } else if (!stable || avgWind > 7 || avgTemp < 6 || avgTemp > 30) {
         rating = 'Złe';
         color = 'orange';
       }
@@ -92,8 +78,8 @@ function groupForecastsByDay(forecasts) {
         stable,
         rating,
         color,
-        icon: entries[0].weather[0].icon,
-        description: entries[0].weather[0].description
+        icon,
+        description
       };
     });
 
@@ -128,7 +114,6 @@ function displayForecasts(forecasts) {
 
 function drawPressureChart(data) {
   const ctx = document.getElementById('hourlyPressureChart').getContext('2d');
-
   const labels = data.map(point =>
     new Date(point.dt * 1000).toLocaleString('pl-PL', {
       hour: '2-digit',
@@ -136,13 +121,12 @@ function drawPressureChart(data) {
       month: '2-digit'
     })
   );
-
   const pressures = data.map(point => point.main.pressure);
 
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: labels,
+      labels,
       datasets: [{
         label: 'Ciśnienie (hPa)',
         data: pressures,
