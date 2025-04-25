@@ -24,15 +24,26 @@ function fetchForecast() {
 
 function groupForecastsByDay(forecasts) {
   const grouped = {};
+  const now = new Date();
 
   forecasts.forEach(forecast => {
+    const forecastDate = new Date(forecast.dt_txt);
     const date = forecast.dt_txt.split(' ')[0];
+
+    // Jeżeli prognoza jest z dnia dzisiejszego i późniejsza niż bieżąca godzina, pomijamy ją
+    if (
+      forecastDate.toDateString() === now.toDateString() &&
+      forecastDate.getHours() > 12
+    ) {
+      return;
+    }
+
     if (!grouped[date]) grouped[date] = [];
     grouped[date].push(forecast);
   });
 
   const result = Object.entries(grouped)
-    .slice(0, 5) // Zmieniono na 5 dni
+    .slice(0, 5)
     .map(([date, entries]) => {
       const temperatures = entries.map(e => e.main.temp);
       const winds = entries.map(e => e.wind.speed);
@@ -53,7 +64,6 @@ function groupForecastsByDay(forecasts) {
       let rating = 'Bardzo źle';
       let color = 'red';
 
-      // Nowe zasady oceny pogody
       if (stable) {
         if (avgPressure >= 990 && avgPressure <= 1005) {
           rating = 'Wspaniale';
@@ -150,4 +160,4 @@ function drawPressureChart(data) {
       }
     }
   });
-                                       }
+}
