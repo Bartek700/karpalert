@@ -11,47 +11,48 @@ function calculateRating(temp, pressureChange, wind, rain, clouds) {
   let score = 0;
   let description = "";
 
-  // Temperatura: główny filtr
+  // Ocena ciśnienia - 70% oceny
+  if (pressureChange <= 5) {
+    score += 70;  // Bardzo stabilne ciśnienie
+  } else if (pressureChange <= 8) {
+    score += 30;  // Średnie wahania ciśnienia
+  } else {
+    score -= 30;  // Duże wahania ciśnienia
+    description += "Duże wahania ciśnienia. ";
+  }
+
+  // Pozostałe warunki - 30% oceny
+
+  // Temperatura
   let tempOK = temp >= 18 && temp <= 25;
   if (tempOK) {
-    score += 30;
+    score += 10; // Optymalna temperatura
   } else {
     description += "Temperatura poza idealnym zakresem. ";
   }
 
-  // Ciśnienie - stabilność
-  if (pressureChange <= 5) {
-    score += 30;
-  } else if (pressureChange <= 8) {
-    score -= 30;
-    description += "Średnie wahania ciśnienia. ";
-  } else {
-    score -= 60;
-    description += "Duże wahania ciśnienia! ";
-  }
-
   // Wiatr
   if (wind >= 1 && wind <= 3) {
-    score += 15;
+    score += 5; // Umiarkowany wiatr
   } else if (wind > 6) {
-    score -= 10;
+    score -= 5; // Silny wiatr
     description += "Silny wiatr. ";
   }
 
   // Opady
   if (rain < 1) {
-    score += 10;
+    score += 5; // Brak opadów
   } else if (rain > 3) {
-    score -= 10;
+    score -= 5; // Duże opady
     description += "Zbyt duże opady. ";
   }
 
   // Zachmurzenie
   if (clouds >= 40 && clouds <= 70) {
-    score += 10;
+    score += 5; // Optymalne zachmurzenie
   }
 
-  if (!tempOK && score > 70) score = 70;
+  // Górne ograniczenie punktacji
   if (score > 100) score = 100;
   if (score < 0) score = 0;
 
